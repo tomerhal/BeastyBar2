@@ -1,0 +1,7 @@
+1. Add show stats to the graphics engine (for debugging). V
+2. Move each card class to its own file. V
+3. Make an import file for all the cards. V
+4. Add the card that require user input for their abilities.V
+5. Work on GUI.
+6. Work on AI.
+7. Make it real multiplayer (with server and clients).
