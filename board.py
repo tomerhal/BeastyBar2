@@ -56,17 +56,25 @@ class Player:
             card.index = len(self.hand)
             self.hand.append(card)
 
-    def play_card(self):
+    def play_card(self,action):
+        #todo
         """
         Getting an index from the user of what card to play from hand.
         :return: The selected card.
         """
-        index = self.graphics_engine.get_card_from_hand(self.hand)
+        action = action.split(" ")
+        index = self.get_index_by_name(action[0])
         played_card = self.hand.pop(index)
+        if(len(action)==2):
+            played_card.next_ability_input = action[1]
         for i in range(played_card.index, len(self.hand)):
             self.hand[i].index -= 1
         return played_card
 
+    def get_index_by_name(self, name):
+        for card in self.hand:
+            if card.name == name:
+                return card.index
 
 class Board:
     def __init__(self):
@@ -96,6 +104,11 @@ class Board:
             if card:
                 cards += 1
         return cards
+
+    def get_card_by_name(self,name):
+        for card in self.jostling_cards:
+            if card.name == name:
+                return card
 
     def reassign_indexes(self):
         """
@@ -176,7 +189,7 @@ class Board:
         Places a card in the game, activating it's 'join' action, and then activating it's abilities.
         :param card:
         """
-        join_action, *params = card.place(game_state=self)
+        join_action, *params = card.place(game_state=self)  #todo add input
         join_action(self, card, *params)
 
     def join(self, card, index=-1, activate_ability=True):
@@ -590,13 +603,13 @@ class Game:
         except Exception as e:
             print(e)
 
-        self.main_loop()
+        #self.main_loop()
 
-    def turn(self, player):
+    def turn(self, player):     #todo change to apply action
         player.graphics_engine.display_board(self.board)
         player.graphics_engine.display_hand(player.hand, len(player.deck), player.color)
         # 1. The player places a card from their hand, activating it's ability. (in this stage there can be user input)
-        card = player.play_card()
+        card = player.play_card(action)   #todo change to parameter
         print(player.name, "has chosen to play", card.full_name)
         self.board.place_card(card)
         player.graphics_engine.display_board(self.board)
@@ -628,6 +641,46 @@ class Game:
         player.graphics_engine.display_stats(self.board)
         # 7. end game conditions: all of the players have played all of their cards.
 
+
+    def apply_action(self, player, action):     #todo change to apply action
+        #player.graphics_engine.display_board(self.board)
+        #player.graphics_engine.display_hand(player.hand, len(player.deck), player.color)
+        # 1. The player places a card from their hand, activating it's ability. (in this stage there can be user input)
+        card = player.play_card(action)   #todo change to parameter
+        print(player.name, "has chosen to play", card.full_name)
+        print(player.name, "has cards", len(player.hand))
+        self.board.place_card(card)
+        #player.graphics_engine.display_board(self.board)
+        # 2. The player will draw a new card from the deck (if possible).
+        player.draw()
+        #player.graphics_engine.display_hand(player.hand, len(player.deck), player.color)
+        # 3. Then, all Recurring abilities will be activated in order, from the front of the line backwards.
+        self.board.activate_recurring(card)
+        #player.graphics_engine.display_board(self.board)
+        # 3.5 Check for permanent abilities with positional triggers
+        self.board.activate_positional_permanent()
+        #player.graphics_engine.display_board(self.board)
+        # 4. Empty the back ally (if there is a card in it)
+        if self.board.card_in_back_ally:
+            self.board.kick_from_back_ally()
+            #player.graphics_engine.display_board(self.board)
+        # 5. Then, Check for 5 cards in jostling area. If true, "open heavens gate", else - next turn.
+        # print('full?', self.board.full)
+        if self.board.full:
+            # 6. Opening havens gate:
+            #   6.1. check for relevant abilities.
+            if self.board.card_in_sky:
+                self.board.activate_ability(self.board.card_in_sky.full_jostling_area_ability(self.board))
+                #player.graphics_engine.display_board(self.board)
+            #   6.2. the two most forward cards will enter the bar.
+            #   6.3. the last card in the jostling area will be kicked to the trash.
+            self.open_heavens_gate()
+            #player.graphics_engine.display_board(self.board)
+        player.graphics_engine.display_stats(self.board)
+        # 7. end game conditions: all of the players have played all of their cards.
+        if all(len(player.hand) == 0 for player in self.players):
+            print("winner is:" + str(self.winner()))
+
     def main_loop(self):
         for i in range(self.deck_len):  # should be 12 / 13
             for player in self.players:
@@ -640,6 +693,17 @@ class Game:
             print("There are no winners this time :(")
         else:
             print(f"The winners are the {[player.title()+'and ' for player in winner]} \b\b\b\bplayers")
+
+    def legal_actions(self,player):
+        actions = []
+        for card in player.hand:
+            actions.extend(card.legal_actions(self.board.jostling_cards,player.hand))
+        return actions
+
+    def get_card_by_name(self,name):
+        for card in self.board.jostling_cards():
+            if card.name == name:
+                return card
 
     def open_heavens_gate(self):
         print("OPENING HEAVENS GATE!!!")

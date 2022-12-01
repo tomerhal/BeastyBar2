@@ -106,6 +106,9 @@ class Card:
         if self.shadowed_card:
             self.shadowed_card.index = index
 
+    def legal_actions(self,jostling_area,hand):
+        return [self.name]
+
     def imitate(self, card):
         self.imitating = True
         self.imitated_card = card

@@ -106,6 +106,15 @@ class Chameleon(Card):
     def __init__(self):
         super().__init__(5, "Chameleon", 3, False, False, CardTypes.Shield, 1)
 
+    def legal_actions(self,jostling_area,hand):
+        actions = []
+        for card in jostling_area:
+            if card.name != self.name and (self.name + " " + card.name) not in actions:
+                actions.append(self.name + " " + card.name)
+        if actions is []:
+            return [self.name]
+
+
 
 class Monkey(Card):  # Done
 
